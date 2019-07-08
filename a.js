@@ -44,17 +44,31 @@ const app = express();
 
 app.get('/api/user/:userId', async (req,res) => {
     const userid = req.params.userId;
-    const {data} = await axios.get('https://reqres.in/api/users/'+userid);
-    res.json({ok: data});
+    let data
+    try {
+        data = await axios.get('https://reqres.in/api/users/'+userid);
+    }catch(e){
+        return res.json({error: true})
+    }
+    res.json({ok: data.data});
 });
 
 app.get('/api/user/:userId/avatar', async (req,res) => {
     const userid = req.params.userId;
-    const {data} = await axios.get('https://reqres.in/api/users/'+userid);
+    // need to create function toGetUserData
+    let data
+    try {
+        data = await axios.get('https://reqres.in/api/users/'+userid);
+    }catch(e){
+        return res.json({error: true})
+    }
     const fileIsHere = fs.existsSync(__dirname + '/' + userid+'avatar.jpg');
     if(!fileIsHere){
-        // if 404 need to catch error
-        await downloadfile(data.data.avatar, userid+'avatar.jpg')
+        try {
+            await downloadfile(data.data.avatar, userid+'avatar.jpg')
+        }catch(e){
+            return res.json({error: true})
+        }
         
     }
     
@@ -83,7 +97,7 @@ app.delete('/api/user/:userId/avatar', (req, res) => {
 function downloadfile(url, dest) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);
-        const req = https.get(url, res => {
+        https.get(url, res => {
             res.pipe(file);
             file.on('finish', () => console.log('finished downloading'))
             resolve()
